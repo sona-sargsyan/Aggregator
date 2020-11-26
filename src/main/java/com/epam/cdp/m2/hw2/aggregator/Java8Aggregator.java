@@ -10,34 +10,37 @@ public class Java8Aggregator implements Aggregator {
 
     @Override
     public int sum(List<Integer> numbers) {
-        return numbers.stream().reduce(0, (c, e) -> (c + e));
+        return numbers.stream().mapToInt(Integer::intValue).sum();
     }
 
     @Override
     public List<Pair<String, Long>> getMostFrequentWords(List<String> words, long limit) {
-        List<Pair<String, Long>> pairList = new ArrayList<>();
         Map<String, Long> pairMap = words.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        pairMap.entrySet().stream()
+        return pairMap.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue()
-                        .reversed()).limit(limit).forEachOrdered(element -> pairList.add(new Pair<>(element.getKey(), element.getValue())));
-
-        return pairList;
+                        .reversed().thenComparing(Map.Entry.comparingByKey()))
+                .map(entry -> new Pair<>(entry.getKey(), entry.getValue()))
+                .limit(limit).collect(Collectors.toList());
     }
 
     @Override
     public List<String> getDuplicates(List<String> words, long limit) {
 
-        List<String> duplicates;
         Set<String> items = new HashSet<>();
 
-        duplicates = words.stream().filter(item -> (!items.add(item.toUpperCase()))).map(String::toUpperCase).limit(limit).collect(Collectors.toList());
-        duplicates.sort((s1, s2) -> {
+        return words.stream().filter(item -> (!items.add(item.toUpperCase())))
+                .map(String::toUpperCase)
+                .limit(limit)
+                .sorted(stringComparator())
+                .collect(Collectors.toList());
+    }
+
+    private Comparator<String> stringComparator() {
+        return (s1, s2) -> {
             if (s1.length() != s2.length()) {
                 return s1.length() - s2.length();
             }
             return s1.compareTo(s2);
-        });
-
-        return duplicates;
+        };
     }
 }
